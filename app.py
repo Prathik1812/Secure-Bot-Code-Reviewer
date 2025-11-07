@@ -1,9 +1,11 @@
 import streamlit as st
 from google import genai
 from google.genai import types
+import os
 
 # --- 1. CONFIGURATION ---
 MODEL_NAME = "gemini-2.5-flash"
+GEMINI_API_KEY = "AIzaSyCZUeQJrASqRsqvc5ZCsvyLCGOG_MzfuMc"  # <-- Replace with your key
 
 SECURITY_SYSTEM_PROMPT = """
 You are an expert Cyber Security Architect and Code Auditor specializing in detecting and fixing security vulnerabilities in code.
@@ -20,12 +22,11 @@ Your output MUST be formatted clearly using Markdown.
 
 # --- 2. GEMINI API CALL FUNCTION ---
 def get_gemini_client(api_key):
-    """Initializes and returns the Gemini client."""
     try:
         client = genai.Client(api_key=api_key)
         return client
     except Exception as e:
-        st.error(f"Error initializing Gemini client: {e}. Please check your API key.")
+        st.error(f"Error initializing Gemini client: {e}.")
         return None
 
 def analyze_and_remediate_code(client, code_to_analyze, language):
@@ -49,9 +50,9 @@ def analyze_and_remediate_code(client, code_to_analyze, language):
 
     except Exception as e:
         if "API_KEY_INVALID" in str(e):
-            return "ERROR: The Gemini API Key is invalid. Please get a valid key from Google AI Studio."
+            return "ERROR: The Gemini API Key is invalid."
         elif "RESOURCE_EXHAUSTED" in str(e):
-            return "ERROR: Rate limit exceeded. Please wait a moment and try again."
+            return "ERROR: Rate limit exceeded."
         else:
             return f"An unexpected error occurred: {e}"
 
@@ -59,19 +60,12 @@ def analyze_and_remediate_code(client, code_to_analyze, language):
 st.set_page_config(page_title="Secure Code Review Bot", layout="wide")
 st.title("🤖 Secure Code Review and Remediation Bot")
 
-st.markdown("APP INIT OK")
+st.markdown("Paste your code below and get a security review & remediation suggestions.")
 
-# API Key & language selection
-col1, col2 = st.columns([2,1])
-with col1:
-    api_key = st.text_input("Enter your Gemini API Key:", type="password")
-with col2:
-    if 'language' not in st.session_state:
-        st.session_state.language = 'Python'
-    st.session_state.language = st.selectbox("Select Code Language:", ['Python','JavaScript','Java','Go','Other'])
+# Language selection
+language = st.selectbox("Select Code Language:", ['Python','JavaScript','Java','Go','Other'])
 
 # Code input
-st.subheader("Paste Your Code")
 default_code = """
 import requests
 import sys
@@ -86,20 +80,18 @@ if __name__ == '__main__':
     data = fetch_data(user_url)
     print(data)
 """
-code_input = st.text_area(f"Paste your {st.session_state.language} code here:", height=300, value=default_code)
+code_input = st.text_area(f"Paste your {language} code here:", height=300, value=default_code)
 
 # Analyze button
 st.subheader("Review Results")
 if st.button("🔍 Analyze and Remediate Code"):
-    if not api_key:
-        st.error("🛑 Please enter your Gemini API Key.")
-    elif not code_input.strip():
+    if not code_input.strip():
         st.warning("⚠️ Please paste some code to analyze.")
     else:
-        client = get_gemini_client(api_key)
+        client = get_gemini_client(GEMINI_API_KEY)
         if client:
             with st.spinner("Analyzing code with Gemini..."):
-                gemini_output = analyze_and_remediate_code(client, code_input, st.session_state.language)
+                gemini_output = analyze_and_remediate_code(client, code_input, language)
 
             if gemini_output.startswith("ERROR"):
                 st.error(gemini_output)
@@ -114,3 +106,4 @@ st.info("""
 The suggested remediation is AI-generated. Always human-review and test all AI-suggested code fixes
 before deploying to ensure correctness and security.
 """)
+
