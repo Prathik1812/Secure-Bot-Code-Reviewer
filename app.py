@@ -106,4 +106,3 @@ st.info("""
 The suggested remediation is AI-generated. Always human-review and test all AI-suggested code fixes
 before deploying to ensure correctness and security.
 """)
-
